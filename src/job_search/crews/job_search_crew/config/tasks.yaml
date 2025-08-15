@@ -1,0 +1,36 @@
+search_jobs:
+  description: >
+    Search for job listings that match the user's career profile using JobSpy.
+    Use the provided career information and skills to find relevant positions.
+    Focus on jobs that align with the user's experience level and desired role.
+  expected_output: >
+    A list of relevant job listings with detailed information including:
+    - Job title and company
+    - Required skills and qualifications
+    - Job description
+    - Location and salary range (if available)
+
+analyze_skills_gap:
+  description: >
+    Analyze the gap between the user's current skills and the requirements of found job listings.
+    Identify which skills the user already has that match job requirements and which skills are missing.
+    Prioritize the most important skill gaps based on frequency across job listings.
+  expected_output: >
+    A detailed skills analysis report including:
+    - Matching skills between user profile and job requirements
+    - Missing skills and their importance
+    - Recommendations for skill development
+    - Job-specific skill alignment scores
+
+generate_resume:
+  description: >
+    Create a personalized resume tailored to the analyzed job requirements.
+    Use the user's career information and emphasize skills that match job requirements.
+    Format the resume to be ATS-friendly and highlight relevant experience.
+  expected_output: >
+    A professionally formatted resume document that includes:
+    - Contact information and professional summary
+    - Skills section highlighting relevant technical and soft skills
+    - Experience section with quantified achievements
+    - Education and certifications
+    - ATS-optimized formatting and keywords
