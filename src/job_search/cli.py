@@ -3,9 +3,11 @@ import json
 from typing import Optional
 
 import click
+from pydantic import ValidationError
 
 from job_search.flows.jod_search import JobSearchFlow, run_job_search_flow
 from job_search.main import PoemFlow, plot_flow
+from job_search.models import UserProfile, JobSearchParams, JobSearchConfig, Experience, Education
 
 
 @click.group()
@@ -74,8 +76,8 @@ def job_search(
 ):
     """Run the Job Search Flow to find jobs and generate personalized resumes"""
 
-    user_profile = {}
-    job_search_params = {}
+    user_profile_data = {}
+    job_search_params_data = {}
 
     # Handle user profile JSON input
     if user_profile_json:
@@ -83,74 +85,104 @@ def job_search(
             # Try to load as file first
             try:
                 with open(user_profile_json, "r") as f:
-                    user_profile = json.load(f)
+                    config_data = json.load(f)
+                    # Check if it's a full config or just user profile
+                    if "user_profile" in config_data:
+                        user_profile_data = config_data["user_profile"]
+                        job_search_params_data = config_data.get("job_search_params", {})
+                    else:
+                        user_profile_data = config_data
             except FileNotFoundError:
                 # If not a file, try to parse as JSON string
-                user_profile = json.loads(user_profile_json)
+                config_data = json.loads(user_profile_json)
+                if "user_profile" in config_data:
+                    user_profile_data = config_data["user_profile"]
+                    job_search_params_data = config_data.get("job_search_params", {})
+                else:
+                    user_profile_data = config_data
         except json.JSONDecodeError as e:
             click.echo(f"Error parsing user profile JSON: {e}", err=True)
             return
 
     # Build user profile from individual options
     if name:
-        user_profile["name"] = name
+        user_profile_data["name"] = name
     if email:
-        user_profile["email"] = email
+        user_profile_data["email"] = email
     if phone:
-        user_profile["phone"] = phone
+        user_profile_data["phone"] = phone
     if location:
-        user_profile["location"] = location
+        user_profile_data["location"] = location
     if linkedin:
-        user_profile["linkedin"] = linkedin
+        user_profile_data["linkedin"] = linkedin
     if summary:
-        user_profile["summary"] = summary
+        user_profile_data["summary"] = summary
 
     if skills:
-        user_profile["skills"] = [skill.strip() for skill in skills.split(",")]
+        user_profile_data["skills"] = [skill.strip() for skill in skills.split(",")]
 
     if certifications:
-        user_profile["certifications"] = [
+        user_profile_data["certifications"] = [
             cert.strip() for cert in certifications.split(",")
         ]
 
     if experience:
         try:
-            user_profile["experience"] = json.loads(experience)
+            user_profile_data["experience"] = json.loads(experience)
         except json.JSONDecodeError as e:
             click.echo(f"Error parsing experience JSON: {e}", err=True)
             return
 
     if education:
         try:
-            user_profile["education"] = json.loads(education)
+            user_profile_data["education"] = json.loads(education)
         except json.JSONDecodeError as e:
             click.echo(f"Error parsing education JSON: {e}", err=True)
             return
 
     # Build job search parameters
     if search_term:
-        job_search_params["search_term"] = search_term
+        job_search_params_data["search_term"] = search_term
     if search_location:
-        job_search_params["location"] = search_location
+        job_search_params_data["location"] = search_location
     if results_wanted:
-        job_search_params["results_wanted"] = results_wanted
+        job_search_params_data["results_wanted"] = results_wanted
 
-    # Run the job search flow
-    flow = JobSearchFlow()
+    try:
+        # Validate and create Pydantic models
+        if not user_profile_data:
+            click.echo("Error: User profile is required. Provide at least name and email.", err=True)
+            return
 
-    if user_profile:
-        flow.state.user_profile = user_profile
-    if job_search_params:
-        flow.state.job_search_params = job_search_params
+        user_profile = UserProfile(**user_profile_data)
+        job_search_params = JobSearchParams(**job_search_params_data)
+        
+        # Convert back to dict for flow compatibility
+        user_profile_dict = user_profile.model_dump()
+        job_search_params_dict = job_search_params.model_dump()
 
-    click.echo(f"🚀 Starting {flow.__class__.__name__}")
-    result = flow.kickoff()
+        # Run the job search flow
+        flow = JobSearchFlow()
+        flow.state.user_profile = user_profile_dict
+        flow.state.job_search_params = job_search_params_dict
 
-    if plot:
-        plot_flow(flow)
+        click.echo(f"🚀 Starting {flow.__class__.__name__}")
+        click.echo(f"User: {user_profile.name} ({user_profile.email})")
+        click.echo(f"Search: {job_search_params.search_term} in {job_search_params.location}")
+        
+        result = flow.kickoff()
 
-    click.echo("✅ Job Search Flow completed successfully")
-    return result
+        if plot:
+            plot_flow(flow)
+
+        click.echo("✅ Job Search Flow completed successfully")
+        return result
+        
+    except ValidationError as e:
+        click.echo(f"Validation error in user profile or job search parameters:", err=True)
+        for error in e.errors():
+            click.echo(f"  - {error['loc'][0]}: {error['msg']}", err=True)
+        return
 
 
 @cli.command()
@@ -178,15 +210,27 @@ def job_search_from_file(profile_file: str):
     """
     try:
         with open(profile_file, "r") as f:
-            config = json.load(f)
+            config_data = json.load(f)
 
-        user_profile = config.get("user_profile", {})
-        job_search_params = config.get("job_search_params", {})
+        # Validate using Pydantic models
+        config = JobSearchConfig(**config_data)
+        
+        # Convert to dict for flow compatibility
+        user_profile = config.user_profile.model_dump()
+        job_search_params = config.job_search_params.model_dump()
+
+        click.echo(f"🚀 Starting Job Search Flow")
+        click.echo(f"User: {config.user_profile.name} ({config.user_profile.email})")
+        click.echo(f"Search: {config.job_search_params.search_term} in {config.job_search_params.location}")
 
         result = run_job_search_flow(user_profile, job_search_params)
         click.echo("✅ Job Search Flow completed successfully")
         return result
 
+    except ValidationError as e:
+        click.echo(f"Validation error in profile file:", err=True)
+        for error in e.errors():
+            click.echo(f"  - {'.'.join(str(x) for x in error['loc'])}: {error['msg']}", err=True)
     except json.JSONDecodeError as e:
         click.echo(f"Error parsing JSON file: {e}", err=True)
     except Exception as e:
@@ -194,55 +238,60 @@ def job_search_from_file(profile_file: str):
 
 
 @cli.command()
-def example_profile():
+@click.option("--filename", default="example_profile.json", help="Output filename for the example profile")
+def example_profile(filename: str):
     """Generate an example profile JSON file"""
-    example = {
-        "user_profile": {
-            "name": "Jane Smith",
-            "email": "jane.smith@email.com",
-            "phone": "+1-555-0123",
-            "location": "San Francisco, CA",
-            "linkedin": "linkedin.com/in/janesmith",
-            "skills": ["Python", "React", "Node.js", "AWS", "Docker", "Kubernetes"],
-            "experience": [
-                {
-                    "title": "Senior Full Stack Developer",
-                    "company": "Tech Innovations Inc",
-                    "duration": "2021-2024",
-                    "description": "Led development of scalable web applications using React and Node.js, deployed on AWS infrastructure",
-                },
-                {
-                    "title": "Software Developer",
-                    "company": "StartupCorp",
-                    "duration": "2019-2021",
-                    "description": "Developed RESTful APIs and frontend interfaces for customer-facing applications",
-                },
-            ],
-            "education": [
-                {
-                    "degree": "Bachelor of Science in Computer Science",
-                    "school": "Stanford University",
-                    "year": "2019",
-                }
-            ],
-            "certifications": [
-                "AWS Certified Solutions Architect",
-                "React Developer Certification",
-            ],
-            "summary": "Experienced full-stack developer with 5+ years building scalable web applications using modern technologies",
-        },
-        "job_search_params": {
-            "search_term": "Senior Full Stack Developer",
-            "location": "San Francisco",
-            "results_wanted": 15,
-        },
-    }
-
-    filename = "example_profile.json"
+    
+    # Create example using Pydantic models for validation
+    user_profile = UserProfile(
+        name="Jane Smith",
+        email="jane.smith@email.com",
+        phone="+1-555-0123",
+        location="San Francisco, CA", 
+        linkedin="linkedin.com/in/janesmith",
+        skills=["Python", "React", "Node.js", "AWS", "Docker", "Kubernetes"],
+        experience=[
+            Experience(
+                title="Senior Full Stack Developer",
+                company="Tech Innovations Inc",
+                duration="2021-2024",
+                description="Led development of scalable web applications using React and Node.js, deployed on AWS infrastructure"
+            ),
+            Experience(
+                title="Software Developer", 
+                company="StartupCorp",
+                duration="2019-2021",
+                description="Developed RESTful APIs and frontend interfaces for customer-facing applications"
+            )
+        ],
+        education=[
+            Education(
+                degree="Bachelor of Science in Computer Science",
+                school="Stanford University", 
+                year="2019"
+            )
+        ],
+        certifications=["AWS Certified Solutions Architect", "React Developer Certification"],
+        summary="Experienced full-stack developer with 5+ years building scalable web applications using modern technologies"
+    )
+    
+    job_search_params = JobSearchParams(
+        search_term="Senior Full Stack Developer",
+        location="San Francisco",
+        results_wanted=15
+    )
+    
+    config = JobSearchConfig(
+        user_profile=user_profile,
+        job_search_params=job_search_params
+    )
+    
+    # Export to JSON
     with open(filename, "w") as f:
-        json.dump(example, f, indent=2)
-
+        json.dump(config.model_dump(), f, indent=2)
+    
     click.echo(f"Example profile saved to {filename}")
+    click.echo(f"You can now run: job-search-cli job-search-from-file {filename}")
 
 
 if __name__ == "__main__":
