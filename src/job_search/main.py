@@ -8,7 +8,7 @@ from job_search.crews.poem_crew.poem_crew import PoemCrew
 
 
 class PoemState(BaseModel):
-    sentence_count: int = 1
+    sentence_count: int | None = None
     poem: str = ""
 
 
@@ -16,7 +16,8 @@ class PoemFlow(Flow[PoemState]):
     @start()
     def generate_sentence_count(self):
         print("Generating sentence count")
-        self.state.sentence_count = randint(1, 5)
+        if self.state.sentence_count is None:
+            self.state.sentence_count = randint(1, 5)
 
     @listen(generate_sentence_count)
     def generate_poem(self):

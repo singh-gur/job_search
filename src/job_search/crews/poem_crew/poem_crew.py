@@ -1,7 +1,9 @@
-from crewai import Agent, Crew, Process, Task
-from crewai.project import CrewBase, agent, crew, task
-from crewai.agents.agent_builder.base_agent import BaseAgent
+from os import getenv
 from typing import List
+
+from crewai import LLM, Agent, Crew, Process, Task
+from crewai.agents.agent_builder.base_agent import BaseAgent
+from crewai.project import CrewBase, agent, crew, task
 
 # If you want to run a snippet of code before or after the crew starts,
 # you can use the @before_kickoff and @after_kickoff decorators
@@ -21,12 +23,20 @@ class PoemCrew:
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
 
+    def __init__(self) -> None:
+        self.llm = LLM(
+            model=getenv("OPENAI_MODEL_NAME"),  # type: ignore[index]
+            api_key=getenv("OPENAI_API_KEY"),  # type: ignore[index]
+            api_base=getenv("OPENAI_API_BASE"),  # type: ignore[index]
+        )
+
     # If you would lik to add tools to your crew, you can learn more about it here:
     # https://docs.crewai.com/concepts/agents#agent-tools
     @agent
     def poem_writer(self) -> Agent:
         return Agent(
             config=self.agents_config["poem_writer"],  # type: ignore[index]
+            llm=self.llm,  # type: ignore[index]
         )
 
     # To learn more about structured task outputs,

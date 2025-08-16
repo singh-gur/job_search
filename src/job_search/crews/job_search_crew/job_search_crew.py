@@ -1,7 +1,9 @@
-from crewai import Agent, Crew, Process, Task
-from crewai.project import CrewBase, agent, crew, task
-from crewai.agents.agent_builder.base_agent import BaseAgent
 from typing import List
+
+from crewai import Agent, Crew, Process, Task
+from crewai.agents.agent_builder.base_agent import BaseAgent
+from crewai.project import CrewBase, agent, crew, task
+
 from job_search.tools.jobspy_tool import JobSpyTool
 from job_search.tools.resume_generator_tool import ResumeGeneratorTool
 
@@ -21,22 +23,19 @@ class JobSearchCrew:
         return Agent(
             config=self.agents_config["job_searcher"],
             tools=[JobSpyTool()],
-            verbose=True
+            verbose=True,
         )
 
     @agent
     def skills_analyzer(self) -> Agent:
-        return Agent(
-            config=self.agents_config["skills_analyzer"],
-            verbose=True
-        )
+        return Agent(config=self.agents_config["skills_analyzer"], verbose=True)
 
     @agent
     def resume_writer(self) -> Agent:
         return Agent(
             config=self.agents_config["resume_writer"],
             tools=[ResumeGeneratorTool()],
-            verbose=True
+            verbose=True,
         )
 
     @task
@@ -51,7 +50,7 @@ class JobSearchCrew:
         return Task(
             config=self.tasks_config["analyze_skills_gap"],
             agent=self.skills_analyzer(),
-            context=[self.search_jobs()]
+            context=[self.search_jobs()],
         )
 
     @task
@@ -59,7 +58,7 @@ class JobSearchCrew:
         return Task(
             config=self.tasks_config["generate_resume"],
             agent=self.resume_writer(),
-            context=[self.search_jobs(), self.analyze_skills_gap()]
+            context=[self.search_jobs(), self.analyze_skills_gap()],
         )
 
     @crew
