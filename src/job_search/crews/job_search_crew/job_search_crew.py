@@ -1,6 +1,7 @@
+from os import getenv
 from typing import List
 
-from crewai import Agent, Crew, Process, Task
+from crewai import LLM, Agent, Crew, Process, Task
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from crewai.project import CrewBase, agent, crew, task
 
@@ -17,6 +18,13 @@ class JobSearchCrew:
 
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
+
+    def __init__(self) -> None:
+        self.llm = LLM(
+            model=getenv("OPENAI_MODEL_NAME"),  # type: ignore[index]
+            api_key=getenv("OPENAI_API_KEY"),  # type: ignore[index]
+            api_base=getenv("OPENAI_API_BASE"),  # type: ignore[index]
+        )
 
     @agent
     def job_searcher(self) -> Agent:
@@ -38,6 +46,13 @@ class JobSearchCrew:
             verbose=True,
         )
 
+    @agent
+    def job_filter(self) -> Agent:
+        return Agent(
+            config=self.agents_config["job_filter"],  # type: ignore[index]
+            verbose=True,
+        )
+
     @task
     def search_jobs(self) -> Task:
         return Task(
@@ -54,16 +69,26 @@ class JobSearchCrew:
         )
 
     @task
+    def filter_jobs(self) -> Task:
+        return Task(
+            config=self.tasks_config["filter_jobs"],  # type: ignore[index]
+            agent=self.job_filter(),
+            context=[self.search_jobs()],
+        )
+
+    @task
     def generate_resume(self) -> Task:
         return Task(
             config=self.tasks_config["generate_resume"],  # type: ignore[index]
             agent=self.resume_writer(),
-            context=[self.search_jobs(), self.analyze_skills_gap()],
+            context=[self.filter_jobs(), self.analyze_skills_gap()],
         )
 
     @crew
     def crew(self) -> Crew:
         """Creates the Job Search Crew"""
+        for a in self.agents:
+            a.llm = self.llm
         return Crew(
             agents=self.agents,
             tasks=self.tasks,

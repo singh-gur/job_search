@@ -13,14 +13,9 @@ dependencies = [
 ]
 
 [project.scripts]
-kickoff = "job_search.main:kickoff"
-run_crew = "job_search.main:kickoff"
-plot = "job_search.main:plot"
-job-search-cli = "job_search.cli:cli"
+job-search = "job_search.cli:cli"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.crewai]
-type = "flow"

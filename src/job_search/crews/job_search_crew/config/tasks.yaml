@@ -22,6 +22,21 @@ analyze_skills_gap:
     - Recommendations for skill development
     - Job-specific skill alignment scores
 
+filter_jobs:
+  description: >
+    Filter and refine the initial job search results based on the user's specific preferences and fine-tune criteria.
+    Use the fine_tune_search_string from job_search_params to analyze each job listing for relevance and fit.
+    If fine_tune_search_string is provided, apply it as additional filtering criteria.
+    If no fine_tune_search_string is provided, simply pass through the original job listings with basic ranking.
+    Analyze job descriptions, company culture mentions, benefits, and work environment details.
+  expected_output: >
+    A filtered and ranked list of job listings that includes:
+    - Original job listings that match the fine-tune criteria (if provided)
+    - Relevance score for each job (1-10 scale) based on fine-tune criteria
+    - Explanation of why each job matches or doesn't match the fine-tune criteria
+    - Final recommended job listings sorted by relevance score
+    - If no fine-tune criteria provided, return all jobs with basic relevance scoring
+
 generate_resume:
   description: >
     Create a personalized resume tailored to the analyzed job requirements.
