@@ -31,18 +31,24 @@ class JobSearchCrew:
         return Agent(
             config=self.agents_config["job_searcher"],  # type: ignore[index]
             tools=[JobSpyTool()],
+            llm=self.llm,
             verbose=True,
         )
 
     @agent
     def skills_analyzer(self) -> Agent:
-        return Agent(config=self.agents_config["skills_analyzer"], verbose=True)  # type: ignore[index]
+        return Agent(
+            config=self.agents_config["skills_analyzer"],  # type: ignore[index]
+            llm=self.llm,
+            verbose=True,
+        )
 
     @agent
     def resume_writer(self) -> Agent:
         return Agent(
             config=self.agents_config["resume_writer"],  # type: ignore[index]
             tools=[ResumeGeneratorTool()],
+            llm=self.llm,
             verbose=True,
         )
 
@@ -50,6 +56,7 @@ class JobSearchCrew:
     def job_filter(self) -> Agent:
         return Agent(
             config=self.agents_config["job_filter"],  # type: ignore[index]
+            llm=self.llm,
             verbose=True,
         )
 

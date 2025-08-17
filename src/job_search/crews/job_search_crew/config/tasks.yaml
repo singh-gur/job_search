@@ -1,19 +1,16 @@
 search_jobs:
   description: >
-    Use the JobSpy Job Search Tool to search for job listings. You MUST call the tool with these exact parameters:
+    Use the JobSpy Job Search Tool to search for job listings. Call the tool with the following parameters:
+    - site_name: Use the default job sites (indeed, linkedin, glassdoor)
+    - search_term: Use the search_term from the provided job search parameters
+    - location: Use the location from the provided job search parameters
+    - results_wanted: Use the results_wanted from the provided job search parameters
+    - hours_old: Use 72 hours for recent postings
+    - country_indeed: Use "USA" as the country
+    - is_remote: Use the is_remote flag from the provided job search parameters
     
-    JobSpy Job Search Tool parameters:
-    - site_name: ["indeed", "linkedin", "glassdoor"]
-    - search_term: {search_term}
-    - location: {location}
-    - results_wanted: {results_wanted}
-    - hours_old: 72
-    - country_indeed: "USA"
-    - is_remote: {is_remote}
-    
-    Use the search_term, location, results_wanted, and is_remote values from the provided inputs.
-    The JobSpy tool will search across multiple job boards and return relevant job listings.
-    Focus on jobs that align with the user's experience level and career profile.
+    The tool will search across multiple job boards and return relevant job listings that match
+    the user's career profile and search criteria.
   expected_output: >
     A list of relevant job listings with detailed information including:
     - Job title and company
