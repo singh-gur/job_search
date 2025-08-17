@@ -122,6 +122,9 @@ class JobSearchParams(BaseModel):
         None,
         description="Additional search criteria for LLM-based fine-tuning of results",
     )
+    is_remote: bool = Field(
+        default=False, description="Whether to search for remote jobs"
+    )
 
     class Config:
         json_schema_extra = {
@@ -130,6 +133,7 @@ class JobSearchParams(BaseModel):
                 "location": "San Francisco",
                 "results_wanted": 15,
                 "fine_tune_search_string": "startups with good work-life balance and remote-first culture",
+                "is_remote": True,
             }
         }
 

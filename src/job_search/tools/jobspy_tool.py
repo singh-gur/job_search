@@ -19,6 +19,9 @@ class JobSpyInput(BaseModel):
         default=72, description="How recent the job postings should be in hours"
     )
     country_indeed: str = Field(default="USA", description="Country for Indeed search")
+    is_remote: bool = Field(
+        default=False, description="Whether to search for remote jobs"
+    )
 
 
 class JobSpyTool(BaseTool):
@@ -34,6 +37,7 @@ class JobSpyTool(BaseTool):
         results_wanted: int,
         hours_old: int,
         country_indeed: str,
+        is_remote: bool,
     ) -> str:
         try:
             jobs_df = scrape_jobs(
@@ -43,6 +47,7 @@ class JobSpyTool(BaseTool):
                 results_wanted=results_wanted,
                 hours_old=hours_old,
                 country_indeed=country_indeed,
+                is_remote=is_remote,
             )
 
             if jobs_df.empty:

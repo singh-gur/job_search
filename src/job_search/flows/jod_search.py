@@ -58,6 +58,7 @@ class JobSearchFlow(Flow[JobSearchState]):
                 "search_term": "Data Scientist",
                 "location": "Remote",
                 "results_wanted": 10,
+                "is_remote": False,
             }
 
     @listen(collect_user_info)
@@ -77,6 +78,7 @@ class JobSearchFlow(Flow[JobSearchState]):
             "fine_tune_search_string": self.state.job_search_params.get(
                 "fine_tune_search_string", ""
             ),
+            "is_remote": self.state.job_search_params.get("is_remote", False),
         }
 
         # Run the job search crew
@@ -174,6 +176,7 @@ if __name__ == "__main__":
         "location": "San Francisco",
         "results_wanted": 15,
         "fine_tune_search_string": "startups with good work-life balance and remote-first culture",
+        "is_remote": True,
     }
 
     run_job_search_flow(sample_user_profile, sample_job_params)

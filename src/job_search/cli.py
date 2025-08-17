@@ -21,12 +21,12 @@ def cli():
     pass
 
 
-
-
 @cli.command()
-@click.argument("profile_file", type=click.Path(exists=True))
-def job_search(profile_file: str):
-    """Run Job Search Flow using a JSON profile file
+@click.option("-p", "--profile-file", required=True, type=click.Path(exists=True))
+def run(profile_file: str):
+    # Generate detailed docs
+    """
+    Run Job Search Flow using a JSON profile file
 
     PROFILE_FILE: Path to JSON file containing user profile and job search parameters
 
@@ -63,8 +63,13 @@ def job_search(profile_file: str):
         click.echo(
             f"Search: {config.job_search_params.search_term} in {config.job_search_params.location}"
         )
+        click.echo(
+            f"Remote only: {'Yes' if config.job_search_params.is_remote else 'No'}"
+        )
         if config.job_search_params.fine_tune_search_string:
-            click.echo(f"Fine-tune criteria: {config.job_search_params.fine_tune_search_string}")
+            click.echo(
+                f"Fine-tune criteria: {config.job_search_params.fine_tune_search_string}"
+            )
 
         result = run_job_search_flow(user_profile, job_search_params)
         click.echo("✅ Job Search Flow completed successfully")
@@ -85,11 +90,29 @@ def job_search(profile_file: str):
 
 @cli.command()
 @click.argument("profile_file", type=click.Path(exists=True))
-@click.option("--search-term", default="Software Developer", help="Job title or search term")
-@click.option("--location", default="Remote", help="Job location")
-@click.option("--results-wanted", default=10, type=int, help="Number of job results to retrieve")
-@click.option("--fine-tune", help="Additional search criteria for LLM-based fine-tuning")
-def job_search_with_params(profile_file: str, search_term: str, location: str, results_wanted: int, fine_tune: Optional[str]):
+@click.option(
+    "-s", "--search-term", default="Software Developer", help="Job title or search term"
+)
+@click.option("-l", "--location", default="Remote", help="Job location")
+@click.option(
+    "-n",
+    "--results-wanted",
+    default=10,
+    type=int,
+    help="Number of job results to retrieve",
+)
+@click.option(
+    "-f", "--fine-tune", help="Additional search criteria for LLM-based fine-tuning"
+)
+@click.option("-r", "--is-remote", is_flag=True, help="Search for remote jobs only")
+def run_with_params(
+    profile_file: str,
+    search_term: str,
+    location: str,
+    results_wanted: int,
+    fine_tune: Optional[str],
+    is_remote: bool,
+):
     """Run Job Search Flow with separate profile file and search parameters
 
     PROFILE_FILE: Path to JSON file containing only user profile
@@ -113,7 +136,8 @@ def job_search_with_params(profile_file: str, search_term: str, location: str, r
             search_term=search_term,
             location=location,
             results_wanted=results_wanted,
-            fine_tune_search_string=fine_tune
+            fine_tune_search_string=fine_tune,
+            is_remote=is_remote,
         )
 
         # Convert to dict for flow compatibility
@@ -124,6 +148,7 @@ def job_search_with_params(profile_file: str, search_term: str, location: str, r
         click.echo(f"User: {user_profile.name} ({user_profile.email})")
         click.echo(f"Search: {search_term} in {location}")
         click.echo(f"Results wanted: {results_wanted}")
+        click.echo(f"Remote only: {'Yes' if is_remote else 'No'}")
         if fine_tune:
             click.echo(f"Fine-tune criteria: {fine_tune}")
 
@@ -193,7 +218,8 @@ def example_profile(filename: str):
         search_term="Senior Full Stack Developer",
         location="San Francisco",
         results_wanted=15,
-        fine_tune_search_string="startups with good work-life balance and remote-first culture"
+        fine_tune_search_string="startups with good work-life balance and remote-first culture",
+        is_remote=True,
     )
 
     config = JobSearchConfig(
@@ -258,7 +284,9 @@ def example_user_profile(filename: str):
         json.dump(user_profile.model_dump(), f, indent=2)
 
     click.echo(f"Example user profile saved to {filename}")
-    click.echo(f"You can now run: job-search-cli job-search-with-params {filename} --search-term 'Senior Developer' --location 'Remote' --fine-tune 'startup culture'")
+    click.echo(
+        f"You can now run: job-search-cli job-search-with-params {filename} --search-term 'Senior Developer' --location 'Remote' --is-remote --fine-tune 'startup culture'"
+    )
 
 
 if __name__ == "__main__":
